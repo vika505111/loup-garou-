@@ -43,6 +43,8 @@
       document.getElementById("status").textContent = "✅ تم الاتصال بنجاح!";
       if (!isNarrator && playerName) {
         peer.send(JSON.stringify({ type: "register", name: playerName }));
+      } else if (isNarrator) {
+        window.location.href = "host.html#ready"; // <== ✅ اسم الصفحة المعدل هنا
       }
     });
 
