@@ -17,7 +17,7 @@
 
     h2 {
       color: #2c3e50;
-      margin-bottom: 30px;
+      margin-bottom: 20px;
     }
 
     input, button {
@@ -25,7 +25,7 @@
       font-size: 18px;
       border-radius: 10px;
       border: 1px solid #ccc;
-      width: 80%;
+      width: 90%;
       max-width: 300px;
       margin-top: 10px;
     }
@@ -38,7 +38,7 @@
     }
 
     #role {
-      margin-top: 40px;
+      margin-top: 30px;
       font-size: 22px;
       color: #8e44ad;
     }
@@ -59,8 +59,8 @@
 <body>
 
   <h2>أدخل اسمك للمشاركة</h2>
-  <input type="text" id="playerName" placeholder="مثال: محمد"><br>
-  <button id="joinBtn" onclick="registerPlayer()">انضمام</button>
+  <input type="text" id="playerName" placeholder="مثال: فاطمة"><br>
+  <button onclick="registerPlayer()">انضمام</button>
 
   <p id="waiting" style="display:none;">📡 في انتظار الاتصال بالراوي...</p>
   <button id="scanBtn" onclick="startScan()" style="display:none;">📷 امسح كود الراوي</button>
@@ -78,7 +78,7 @@
       if (!playerName) return alert("الرجاء إدخال الاسم");
 
       input.style.display = "none";
-      document.getElementById("joinBtn").style.display = "none";
+      document.querySelector("button").style.display = "none";
       document.getElementById("waiting").style.display = "block";
       document.getElementById("scanBtn").style.display = "inline-block";
     }
@@ -91,7 +91,7 @@
       html5QrCode.start(
         { facingMode: "environment" },
         { fps: 10, qrbox: 250 },
-        (decodedText, decodedResult) => {
+        (decodedText) => {
           try {
             const signal = JSON.parse(decodedText);
             html5QrCode.stop().then(() => {
@@ -99,12 +99,12 @@
               connectToNarrator(signal);
             });
           } catch (e) {
-            alert("❌ الكود غير صالح!");
+            alert("❌ كود غير صالح!");
           }
         },
-        (err) => { /* تجاهل أخطاء القراءة */ }
+        (err) => { /* تجاهل أخطاء الكاميرا */ }
       ).catch(err => {
-        alert("❌ فشل فتح الكاميرا");
+        alert("❌ فشل في فتح الكاميرا");
         console.error(err);
       });
     }
@@ -113,7 +113,7 @@
       peer = new SimplePeer({ initiator: false, trickle: false });
 
       peer.on('signal', data => {
-        // لا نرسل شيء من اللاعب، فقط يتلقى الدور لاحقًا
+        // اللاعب لا يرسل signal للراوي
       });
 
       peer.signal(signal);
