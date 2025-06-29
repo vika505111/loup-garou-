@@ -1,11 +1,9 @@
-<!-- الراوي - narrator.html -->
 <!DOCTYPE html>
 <html lang="ar">
 <head>
   <meta charset="UTF-8" />
   <title>الراوي - لعبة لوڨارو</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script src="https://unpkg.com/simple-peer@9.11.1/simplepeer.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
   <style>
     body { direction: rtl; font-family: 'Cairo', sans-serif; text-align: center; padding: 20px; background: #fefefe; }
@@ -18,50 +16,29 @@
 <body>
   <h2>أنت الراوي</h2>
   <p>عدد اللاعبين المسجلين: <strong id="playerCount">0</strong></p>
+
   <label>عدد الذئاب: <input type="number" id="wolves" min="0" value="2" /></label><br />
   <label>عدد القرويين: <input type="number" id="villagers" min="0" value="4" /></label>
 
   <h3>الأدوار الفردية</h3>
   <div id="roles"></div>
-  <button onclick="startGame()">ابدأ اللعبة</button>
+  <button onclick="startGame()">🎮 ابدأ اللعبة</button>
 
-  <h3>امسح هذا الكود بكاميرا هاتفك للاتصال</h3>
+  <h3>امسح هذا الكود بكاميرا هاتفك</h3>
   <canvas id="qrcode"></canvas><br />
-  <button onclick="generateNewPeer()">🔄 توليد كود جديد</button>
+  <button onclick="showQRCode()">🔄 توليد كود اتصال</button>
 
   <ul id="playerList"></ul>
 
   <script>
-    const players = []; // { name, peer }
-    let currentPeer;
+    const players = [];
 
-    function generateNewPeer() {
-      currentPeer = new SimplePeer({ initiator: true, trickle: false });
-
-      currentPeer.on('signal', data => {
-        new QRious({ element: document.getElementById('qrcode'), value: JSON.stringify(data), size: 280 });
-      });
-
-      currentPeer.on('connect', () => {
-        console.log("📡 اتصال جديد");
-      });
-
-      currentPeer.on('data', data => {
-        try {
-          const msg = JSON.parse(data.toString());
-          if (msg.type === 'register' && msg.name) {
-            players.push({ name: msg.name, peer: currentPeer });
-            updatePlayerList();
-            console.log("✅ لاعب مسجل:", msg.name);
-
-            setTimeout(() => {
-              if (currentPeer) currentPeer.destroy();
-              generateNewPeer();
-            }, 1000); // تأخير لضمان استلام البيانات
-          }
-        } catch (e) {
-          console.error("❌ خطأ في البيانات:", e);
-        }
+    function showQRCode() {
+      const url = `${location.origin}/connect.html?type=narrator`;
+      new QRious({
+        element: document.getElementById('qrcode'),
+        value: url,
+        size: 280
       });
     }
 
@@ -71,31 +48,22 @@
       ul.innerHTML = '';
       players.forEach(p => {
         const li = document.createElement('li');
-        li.textContent = p.name;
+        li.textContent = p;
         ul.appendChild(li);
       });
     }
 
+    // فقط لتجريب ظهور لاعب بعد الاتصال
+    if (location.hash === "#ready") {
+      const name = prompt("👤 أدخل اسم اللاعب المتصل:");
+      if (name) {
+        players.push(name);
+        updatePlayerList();
+      }
+    }
+
     function startGame() {
-      const wolves = +document.getElementById("wolves").value;
-      const villagers = +document.getElementById("villagers").value;
-      const activeRoles = [];
-      document.querySelectorAll(".toggle-btn.active").forEach(btn => {
-        activeRoles.push(btn.parentElement.firstChild.textContent);
-      });
-
-      const total = wolves + villagers + activeRoles.length;
-      if (total > players.length) return alert("⚠️ عدد الأدوار أكبر من عدد اللاعبين!");
-
-      const rolesToAssign = [...Array(wolves).fill("ذئب"), ...Array(villagers).fill("قروي"), ...activeRoles];
-      rolesToAssign.sort(() => Math.random() - 0.5);
-
-      players.forEach((p, i) => {
-        const role = rolesToAssign[i] || "قروي";
-        p.peer.send(JSON.stringify({ type: "role", role }));
-      });
-
-      alert("✅ تم توزيع الأدوار.");
+      alert("🎲 توزيع الأدوار يتطلب اتصال حقيقي لتجربته.");
     }
 
     const rolesData = ["المستذئب", "الساحرة", "المنقذ", "الذئب الصغير", "الصياد", "الطفلة الصغيرة", "الغراب", "البومة", "رجل الحرائق", "المستبصرة", "الغبي"];
@@ -116,8 +84,6 @@
       row.appendChild(btn);
       rolesContainer.appendChild(row);
     });
-
-    generateNewPeer(); // أول اتصال
   </script>
 </body>
 </html>
