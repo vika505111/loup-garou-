@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="ar">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>اللاعب - لعبة لوڨارو</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://unpkg.com/simple-peer@9.11.1/simplepeer.min.js"></script>
   <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
@@ -59,7 +59,8 @@
 <body>
 
   <h2>أدخل اسمك للمشاركة</h2>
-  <input type="text" id="playerName" placeholder="مثال: فاطمة"><br>
+  <input type="text" id="playerName" placeholder="مثال: فاطمة" />
+  <br />
   <button id="joinBtn" onclick="registerPlayer()">انضمام</button>
 
   <p id="waiting" style="display:none;">📡 في انتظار الاتصال بالراوي...</p>
@@ -75,8 +76,12 @@
     function registerPlayer() {
       const input = document.getElementById("playerName");
       playerName = input.value.trim();
-      if (!playerName) return alert("الرجاء إدخال الاسم");
+      if (!playerName) {
+        alert("الرجاء إدخال الاسم");
+        return;
+      }
 
+      // إخفاء إدخال الاسم وإظهار زر المسح
       input.style.display = "none";
       document.getElementById("joinBtn").style.display = "none";
       document.getElementById("waiting").style.display = "block";
@@ -91,7 +96,7 @@
       html5QrCode.start(
         { facingMode: "environment" },
         { fps: 10, qrbox: 250 },
-        (decodedText) => {
+        decodedText => {
           try {
             const signal = JSON.parse(decodedText);
             html5QrCode.stop().then(() => {
@@ -102,7 +107,9 @@
             alert("❌ كود غير صالح!");
           }
         },
-        (err) => { /* تجاهل الأخطاء */ }
+        err => {
+          // تجاهل الأخطاء
+        }
       ).catch(err => {
         alert("❌ فشل في فتح الكاميرا");
         console.error(err);
@@ -112,9 +119,7 @@
     function connectToNarrator(signal) {
       peer = new SimplePeer({ initiator: false, trickle: false });
 
-      peer.on('signal', data => {
-        // اللاعب لا يرسل كود العودة للراوي
-      });
+      // لا نرسل signal لأن الراوي هو initiator
 
       peer.signal(signal);
 
@@ -124,11 +129,16 @@
       });
 
       peer.on('data', data => {
-        const message = JSON.parse(data);
+        const message = JSON.parse(data.toString());
         if (message.type === "role") {
           document.getElementById("waiting").style.display = "none";
           document.getElementById("role").textContent = "🎭 دورك هو: " + message.role;
         }
+      });
+
+      peer.on('error', err => {
+        alert("❌ حدث خطأ أثناء الاتصال");
+        console.error(err);
       });
     }
   </script>
