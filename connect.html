@@ -35,25 +35,23 @@
 
     peer.on('signal', data => {
       if (isNarrator) {
-        // الراوي لا يحتاج الآن عرض رابط
         document.getElementById("status").textContent = "📱 انتظر اتصال اللاعب...";
       }
     });
 
     peer.on('connect', () => {
       document.getElementById("status").textContent = "✅ تم الاتصال بنجاح!";
-
       if (!isNarrator && playerName) {
         peer.send(JSON.stringify({ type: "register", name: playerName }));
       }
+    });
 
-      setTimeout(() => {
-        if (!isNarrator) {
-          window.location.href = "player.html#connected";
-        } else {
-          window.location.href = "narrator.html#ready";
-        }
-      }, 1000);
+    peer.on('data', data => {
+      const msg = JSON.parse(data.toString());
+      if (msg.type === "role") {
+        localStorage.setItem("myRole", msg.role);
+        window.location.href = "player.html#myrole";
+      }
     });
 
     peer.on('error', err => {
