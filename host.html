@@ -79,42 +79,55 @@
   <h3>امسح هذا الكود بكاميرا هاتفك للاتصال</h3>
   <canvas id="qrcode"></canvas>
   <br>
-  <button onclick="generateNewConnection()">🔄 توليد كود جديد</button>
+  <button onclick="generateNewPeer()">🔄 توليد كود جديد</button>
+
+  <ul id="playerList"></ul>
 
   <script src="https://unpkg.com/simple-peer@9.11.1/simplepeer.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
   <script>
-    const peers = [];
-    const players = [];
+    const players = []; // { name, peer }
     let currentPeer;
 
-    function generateNewConnection() {
+    function generateNewPeer() {
       currentPeer = new SimplePeer({ initiator: true, trickle: false });
 
       currentPeer.on('signal', data => {
         new QRious({
           element: document.getElementById('qrcode'),
           value: JSON.stringify(data),
-          size: 280 // أكبر قليلاً لسهولة المسح
+          size: 280
         });
       });
 
       currentPeer.on('connect', () => {
-        peers.push(currentPeer);
-        console.log('✅ تم الاتصال بلاعب جديد');
+        console.log("📡 تم الاتصال بلاعب جديد");
       });
 
       currentPeer.on('data', data => {
-        const msg = JSON.parse(data.toString());
-        if (msg.type === 'register') {
-          players.push({ peer: currentPeer, name: msg.name });
-          updatePlayerList();
+        try {
+          const msg = JSON.parse(data.toString());
+          if (msg.type === 'register' && msg.name) {
+            players.push({ name: msg.name, peer: currentPeer });
+            updatePlayerList();
+            console.log("✅ سجل اللاعب:", msg.name);
+            generateNewPeer(); // بعد الاتصال بلاعب، جهز QR للاعب التالي
+          }
+        } catch (e) {
+          console.error("❌ فشل تحليل البيانات:", e);
         }
       });
     }
 
     function updatePlayerList() {
       document.getElementById('playerCount').textContent = players.length;
+      const ul = document.getElementById('playerList');
+      ul.innerHTML = '';
+      players.forEach(p => {
+        const li = document.createElement('li');
+        li.textContent = p.name;
+        ul.appendChild(li);
+      });
     }
 
     function startGame() {
@@ -147,7 +160,6 @@
       alert("✅ تم توزيع الأدوار بنجاح.");
     }
 
-    // الأدوار الخاصة
     const rolesData = [
       "المستذئب", "الساحرة", "المنقذ", "الذئب الصغير",
       "الصياد", "الطفلة الصغيرة", "الغراب", "البومة",
@@ -175,8 +187,8 @@
       rolesContainer.appendChild(row);
     });
 
-    // أول كود عند تحميل الصفحة
-    generateNewConnection();
+    // أول كود عند تشغيل الصفحة
+    generateNewPeer();
   </script>
 </body>
 </html>
