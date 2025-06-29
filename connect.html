@@ -1,0 +1,57 @@
+<!-- connect.html -->
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8" />
+  <title>الاتصال بين اللاعب والراوي</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://unpkg.com/simple-peer@9.11.1/simplepeer.min.js"></script>
+</head>
+<body style="font-family: Cairo, sans-serif; text-align: center; padding: 40px;">
+  <h2>📡 جاري إنشاء الاتصال...</h2>
+  <p id="status">الرجاء الانتظار...</p>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const isNarrator = urlParams.get("type") === "narrator";
+    const signalParam = urlParams.get("signal");
+
+    let peer = new SimplePeer({ initiator: isNarrator, trickle: false });
+
+    if (!isNarrator && signalParam) {
+      try {
+        const signal = JSON.parse(decodeURIComponent(signalParam));
+        peer.signal(signal);
+      } catch (e) {
+        document.getElementById("status").textContent = "❌ فشل في قراءة بيانات QR.";
+        throw e;
+      }
+    }
+
+    peer.on('signal', data => {
+      if (isNarrator) {
+        const qrValue = encodeURIComponent(JSON.stringify(data));
+        const fullLink = `${location.origin}${location.pathname}?type=player&signal=${qrValue}`;
+        // عرض الرابط على شكل كود QR
+        window.location.href = `narrator.html#ready`; // الراوي يعود بعد التوليد
+      }
+    });
+
+    peer.on('connect', () => {
+      document.getElementById("status").textContent = "✅ تم الاتصال بنجاح!";
+      setTimeout(() => {
+        if (isNarrator) {
+          window.location.href = "narrator.html";
+        } else {
+          window.location.href = "player.html#connected";
+        }
+      }, 1000);
+    });
+
+    peer.on('error', err => {
+      document.getElementById("status").textContent = "❌ حدث خطأ في الاتصال.";
+      console.error(err);
+    });
+  </script>
+</body>
+</html>
