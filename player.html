@@ -60,7 +60,7 @@
 
   <h2>أدخل اسمك للمشاركة</h2>
   <input type="text" id="playerName" placeholder="مثال: فاطمة"><br>
-  <button onclick="registerPlayer()">انضمام</button>
+  <button id="joinBtn" onclick="registerPlayer()">انضمام</button>
 
   <p id="waiting" style="display:none;">📡 في انتظار الاتصال بالراوي...</p>
   <button id="scanBtn" onclick="startScan()" style="display:none;">📷 امسح كود الراوي</button>
@@ -78,7 +78,7 @@
       if (!playerName) return alert("الرجاء إدخال الاسم");
 
       input.style.display = "none";
-      document.querySelector("button").style.display = "none";
+      document.getElementById("joinBtn").style.display = "none";
       document.getElementById("waiting").style.display = "block";
       document.getElementById("scanBtn").style.display = "inline-block";
     }
@@ -102,7 +102,7 @@
             alert("❌ كود غير صالح!");
           }
         },
-        (err) => { /* تجاهل أخطاء الكاميرا */ }
+        (err) => { /* تجاهل الأخطاء */ }
       ).catch(err => {
         alert("❌ فشل في فتح الكاميرا");
         console.error(err);
@@ -113,7 +113,7 @@
       peer = new SimplePeer({ initiator: false, trickle: false });
 
       peer.on('signal', data => {
-        // اللاعب لا يرسل signal للراوي
+        // اللاعب لا يرسل كود العودة للراوي
       });
 
       peer.signal(signal);
