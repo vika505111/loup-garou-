@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <title>اللاعب - لعبة لوڨارو</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script src="https://unpkg.com/simple-peer@9.11.1/simplepeer.min.js"></script>
   <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
     body { direction: rtl; font-family: 'Cairo', sans-serif; text-align: center; padding: 40px; background: #f5f5f5; }
@@ -31,7 +30,6 @@
       const name = document.getElementById("playerName").value.trim();
       if (!name) return alert("⚠️ أدخل اسمك أولا!");
 
-      // حفظ الاسم
       localStorage.setItem("playerName", name);
 
       const reader = document.getElementById("reader");
@@ -54,30 +52,14 @@
       });
     }
 
-    // الاتصال بعد المسح
-    if (location.hash === "#connected") {
-      const name = localStorage.getItem("playerName");
-      document.getElementById("waiting").textContent = "📡 في انتظار الاتصال بالراوي...";
-
-      // ننتظر وصول الكائن peer من connect.html
-      // peer موجود عالميًا إن تمت العملية بشكل صحيح
-      window.peer?.on('connect', () => {
-        document.getElementById("waiting").textContent = "✅ تم الاتصال، في انتظار توزيع الدور...";
-        window.peer.send(JSON.stringify({ type: "register", name }));
-      });
-
-      window.peer?.on('data', data => {
-        const msg = JSON.parse(data.toString());
-        if (msg.type === "role") {
-          document.getElementById("waiting").style.display = "none";
-          document.getElementById("role").textContent = "🎭 دورك هو: " + msg.role;
-        }
-      });
-
-      window.peer?.on('error', err => {
-        document.getElementById("waiting").textContent = "❌ فشل في الاتصال بالراوي.";
-        console.error(err);
-      });
+    if (location.hash === "#myrole") {
+      const role = localStorage.getItem("myRole");
+      if (role) {
+        document.getElementById("waiting").style.display = "none";
+        document.getElementById("role").textContent = "🎭 دورك هو: " + role;
+      } else {
+        document.getElementById("waiting").textContent = "❌ لم يتم العثور على دورك.";
+      }
     }
   </script>
 
