@@ -1,55 +1,49 @@
-<!-- narrator.html -->
+<!-- الراوي - narrator.html -->
 <!DOCTYPE html>
 <html lang="ar">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>الراوي - لعبة لوڨارو</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://unpkg.com/simple-peer@9.11.1/simplepeer.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
   <style>
-    body { direction: rtl; font-family: 'Cairo', sans-serif; text-align: center; background: #fefefe; padding: 20px; }
-    input[type="number"], button { font-size: 18px; padding: 10px; margin-top: 10px; border-radius: 10px; }
-    .toggle-btn { background: #e74c3c; color: white; border: none; padding: 8px 15px; border-radius: 8px; }
-    .toggle-btn.active { background: #27ae60; }
-    .role-row { display: flex; justify-content: space-between; max-width: 400px; margin: 10px auto; border-bottom: 1px solid #ccc; padding: 10px; }
-    canvas { margin-top: 20px; }
+    body { direction: rtl; font-family: 'Cairo', sans-serif; text-align: center; padding: 20px; background: #fefefe; }
+    input, button { font-size: 18px; margin: 10px; padding: 10px; border-radius: 10px; }
+    .role-row { display: flex; justify-content: space-between; max-width: 400px; margin: 10px auto; border-bottom: 1px solid #ccc; }
+    .toggle-btn { background-color: #e74c3c; color: white; padding: 8px 15px; border: none; border-radius: 8px; cursor: pointer; }
+    .toggle-btn.active { background-color: #27ae60; }
   </style>
 </head>
 <body>
   <h2>أنت الراوي</h2>
   <p>عدد اللاعبين المسجلين: <strong id="playerCount">0</strong></p>
-
-  <label>عدد الذئاب:</label><br><input type="number" id="wolves" value="2"><br>
-  <label>عدد القرويين:</label><br><input type="number" id="villagers" value="4"><br>
+  <label>عدد الذئاب: <input type="number" id="wolves" min="0" value="2" /></label><br />
+  <label>عدد القرويين: <input type="number" id="villagers" min="0" value="4" /></label>
 
   <h3>الأدوار الفردية</h3>
   <div id="roles"></div>
   <button onclick="startGame()">ابدأ اللعبة</button>
 
   <h3>امسح هذا الكود بكاميرا هاتفك للاتصال</h3>
-  <canvas id="qrcode"></canvas><br>
+  <canvas id="qrcode"></canvas><br />
   <button onclick="generateNewPeer()">🔄 توليد كود جديد</button>
 
   <ul id="playerList"></ul>
 
   <script>
-    const players = [];
+    const players = []; // { name, peer }
     let currentPeer;
 
     function generateNewPeer() {
       currentPeer = new SimplePeer({ initiator: true, trickle: false });
 
       currentPeer.on('signal', data => {
-        new QRious({
-          element: document.getElementById('qrcode'),
-          value: JSON.stringify(data),
-          size: 280
-        });
+        new QRious({ element: document.getElementById('qrcode'), value: JSON.stringify(data), size: 280 });
       });
 
       currentPeer.on('connect', () => {
-        console.log("📡 تم الاتصال بلاعب جديد");
+        console.log("📡 اتصال جديد");
       });
 
       currentPeer.on('data', data => {
@@ -58,19 +52,17 @@
           if (msg.type === 'register' && msg.name) {
             players.push({ name: msg.name, peer: currentPeer });
             updatePlayerList();
-            console.log("✅ سجل اللاعب:", msg.name);
-            // نؤخر التدمير لإنهاء الإرسال
+            console.log("✅ لاعب مسجل:", msg.name);
+
             setTimeout(() => {
               if (currentPeer) currentPeer.destroy();
               generateNewPeer();
-            }, 500);
+            }, 1000); // تأخير لضمان استلام البيانات
           }
         } catch (e) {
-          console.error("❌ فشل تحليل البيانات:", e);
+          console.error("❌ خطأ في البيانات:", e);
         }
       });
-
-      currentPeer.on('error', err => console.error("🚨 خطأ في الراوي:", err));
     }
 
     function updatePlayerList() {
@@ -85,39 +77,28 @@
     }
 
     function startGame() {
-      const wolves = parseInt(document.getElementById("wolves").value);
-      const villagers = parseInt(document.getElementById("villagers").value);
+      const wolves = +document.getElementById("wolves").value;
+      const villagers = +document.getElementById("villagers").value;
       const activeRoles = [];
       document.querySelectorAll(".toggle-btn.active").forEach(btn => {
         activeRoles.push(btn.parentElement.firstChild.textContent);
       });
 
-      const totalAssigned = wolves + villagers + activeRoles.length;
-      if (totalAssigned > players.length) {
-        alert("⚠️ عدد الأدوار أكبر من عدد اللاعبين!");
-        return;
-      }
+      const total = wolves + villagers + activeRoles.length;
+      if (total > players.length) return alert("⚠️ عدد الأدوار أكبر من عدد اللاعبين!");
 
-      const rolesToAssign = [
-        ...Array(wolves).fill("ذئب"),
-        ...Array(villagers).fill("قروي"),
-        ...activeRoles
-      ].sort(() => Math.random() - 0.5);
+      const rolesToAssign = [...Array(wolves).fill("ذئب"), ...Array(villagers).fill("قروي"), ...activeRoles];
+      rolesToAssign.sort(() => Math.random() - 0.5);
 
       players.forEach((p, i) => {
         const role = rolesToAssign[i] || "قروي";
         p.peer.send(JSON.stringify({ type: "role", role }));
       });
 
-      alert("✅ تم توزيع الأدوار بنجاح.");
+      alert("✅ تم توزيع الأدوار.");
     }
 
-    const rolesData = [
-      "المستذئب", "الساحرة", "المنقذ", "الذئب الصغير",
-      "الصياد", "الطفلة الصغيرة", "الغراب", "البومة",
-      "رجل الحرائق", "المستبصرة", "الغبي"
-    ];
-
+    const rolesData = ["المستذئب", "الساحرة", "المنقذ", "الذئب الصغير", "الصياد", "الطفلة الصغيرة", "الغراب", "البومة", "رجل الحرائق", "المستبصرة", "الغبي"];
     const rolesContainer = document.getElementById("roles");
     rolesData.forEach(role => {
       const row = document.createElement("div");
@@ -136,7 +117,7 @@
       rolesContainer.appendChild(row);
     });
 
-    generateNewPeer();
+    generateNewPeer(); // أول اتصال
   </script>
 </body>
 </html>
