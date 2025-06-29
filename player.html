@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <title>اللاعب - لعبة لوڨارو</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://unpkg.com/simple-peer@9.11.1/simplepeer.min.js"></script>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <style>
+    body {
+      direction: rtl;
+      font-family: 'Cairo', sans-serif;
+      background-color: #f5f5f5;
+      text-align: center;
+      padding: 40px;
+    }
+
+    h2 {
+      color: #2c3e50;
+      margin-bottom: 30px;
+    }
+
+    input, button {
+      padding: 12px;
+      font-size: 18px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      width: 80%;
+      max-width: 300px;
+      margin-top: 10px;
+    }
+
+    button {
+      background-color: #27ae60;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    #role {
+      margin-top: 40px;
+      font-size: 22px;
+      color: #8e44ad;
+    }
+
+    #waiting {
+      margin-top: 20px;
+      color: #7f8c8d;
+      font-size: 18px;
+    }
+
+    #reader {
+      width: 300px;
+      margin: 20px auto;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>أدخل اسمك للمشاركة</h2>
+  <input type="text" id="playerName" placeholder="مثال: محمد"><br>
+  <button id="joinBtn" onclick="registerPlayer()">انضمام</button>
+
+  <p id="waiting" style="display:none;">📡 في انتظار الاتصال بالراوي...</p>
+  <button id="scanBtn" onclick="startScan()" style="display:none;">📷 امسح كود الراوي</button>
+
+  <div id="reader"></div>
+  <div id="role"></div>
+
+  <script>
+    let peer;
+    let playerName = "";
+
+    function registerPlayer() {
+      const input = document.getElementById("playerName");
+      playerName = input.value.trim();
+      if (!playerName) return alert("الرجاء إدخال الاسم");
+
+      input.style.display = "none";
+      document.getElementById("joinBtn").style.display = "none";
+      document.getElementById("waiting").style.display = "block";
+      document.getElementById("scanBtn").style.display = "inline-block";
+    }
+
+    function startScan() {
+      const reader = document.getElementById("reader");
+      reader.style.display = "block";
+      const html5QrCode = new Html5Qrcode("reader");
+
+      html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: 250 },
+        (decodedText, decodedResult) => {
+          try {
+            const signal = JSON.parse(decodedText);
+            html5QrCode.stop().then(() => {
+              reader.style.display = "none";
+              connectToNarrator(signal);
+            });
+          } catch (e) {
+            alert("❌ الكود غير صالح!");
+          }
+        },
+        (err) => { /* تجاهل أخطاء القراءة */ }
+      ).catch(err => {
+        alert("❌ فشل فتح الكاميرا");
+        console.error(err);
+      });
+    }
+
+    function connectToNarrator(signal) {
+      peer = new SimplePeer({ initiator: false, trickle: false });
+
+      peer.on('signal', data => {
+        // لا نرسل شيء من اللاعب، فقط يتلقى الدور لاحقًا
+      });
+
+      peer.signal(signal);
+
+      peer.on('connect', () => {
+        document.getElementById("waiting").textContent = "✅ تم الاتصال، في انتظار توزيع الدور...";
+        peer.send(JSON.stringify({ type: "register", name: playerName }));
+      });
+
+      peer.on('data', data => {
+        const message = JSON.parse(data);
+        if (message.type === "role") {
+          document.getElementById("waiting").style.display = "none";
+          document.getElementById("role").textContent = "🎭 دورك هو: " + message.role;
+        }
+      });
+    }
+  </script>
+
+</body>
+</html>

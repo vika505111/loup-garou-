@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <title>اللاعب - لعبة لوڨارو</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      direction: rtl;
+      font-family: 'Cairo', sans-serif;
+      background-color: #f5f5f5;
+      text-align: center;
+      padding: 40px;
+    }
+
+    h2 {
+      color: #2c3e50;
+      margin-bottom: 30px;
+    }
+
+    input {
+      padding: 10px;
+      font-size: 18px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      width: 80%;
+      max-width: 300px;
+    }
+
+    button {
+      margin-top: 15px;
+      padding: 10px 25px;
+      font-size: 18px;
+      border: none;
+      background-color: #27ae60;
+      color: white;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    #role {
+      font-size: 24px;
+      font-weight: bold;
+      color: #8e44ad;
+      margin-top: 30px;
+    }
+
+    #waiting {
+      color: #7f8c8d;
+      font-size: 18px;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>مرحبًا بك في لعبة لوڨارو</h2>
+
+  <input type="text" id="playerName" placeholder="اكتب اسمك هنا">
+  <br>
+  <button onclick="joinGame()">دخول</button>
+
+  <div id="waiting">يرجى إدخال اسمك للمتابعة</div>
+  <div id="role"></div>
+
+  <script>
+    function joinGame() {
+      const name = document.getElementById("playerName").value.trim();
+      const waiting = document.getElementById("waiting");
+      const roleDiv = document.getElementById("role");
+
+      if (!name) {
+        waiting.textContent = "⚠️ الرجاء كتابة اسمك أولاً.";
+        return;
+      }
+
+      const rolesData = JSON.parse(localStorage.getItem("assignedRoles")) || {};
+
+      if (rolesData[name]) {
+        waiting.style.display = "none";
+        roleDiv.textContent = "🎭 دورك هو: " + rolesData[name];
+      } else {
+        waiting.textContent = "❌ لم يتم العثور على دورك. تأكد من أن الراوي قد بدأ اللعبة.";
+        roleDiv.textContent = "";
+      }
+    }
+  </script>
+
+</body>
+</html>

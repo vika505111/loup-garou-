@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <title>تحكم الراوي - لوڨارو</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      direction: rtl;
+      font-family: 'Cairo', sans-serif;
+      background-color: #fefefe;
+      padding: 20px;
+      text-align: center;
+    }
+
+    h2 {
+      color: #2c3e50;
+      margin-bottom: 20px;
+    }
+
+    .player {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #ecf0f1;
+      padding: 10px 20px;
+      border-radius: 10px;
+      margin: 10px auto;
+      max-width: 400px;
+    }
+
+    .player.dead {
+      background: #bdc3c7;
+      color: #7f8c8d;
+      text-decoration: line-through;
+    }
+
+    button.kill {
+      background: #e74c3c;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    button.kill:disabled {
+      background: #999;
+      cursor: default;
+    }
+
+    #count {
+      margin-bottom: 15px;
+      font-size: 18px;
+      color: #34495e;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>قائمة اللاعبين - تحكم الراوي</h2>
+  <p id="count">عدد اللاعبين: 0</p>
+  <div id="playersList"></div>
+
+  <script>
+    // جلب اللاعبين من التخزين المحلي
+    const players = JSON.parse(localStorage.getItem("players")) || [];
+
+    // عرض العدد
+    document.getElementById("count").textContent = `عدد اللاعبين: ${players.length}`;
+
+    const playersList = document.getElementById("playersList");
+
+    players.forEach((name, index) => {
+      const div = document.createElement("div");
+      div.className = "player";
+      div.innerHTML = `
+        <span>${name}</span>
+        <button class="kill" onclick="killPlayer(this)">قتل</button>
+      `;
+      playersList.appendChild(div);
+    });
+
+    function killPlayer(button) {
+      const playerDiv = button.parentElement;
+      playerDiv.classList.add("dead");
+      button.textContent = "ميت";
+      button.disabled = true;
+    }
+  </script>
+
+</body>
+</html>
