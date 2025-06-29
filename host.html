@@ -111,7 +111,10 @@
             players.push({ name: msg.name, peer: currentPeer });
             updatePlayerList();
             console.log("✅ سجل اللاعب:", msg.name);
-            generateNewPeer(); // بعد الاتصال بلاعب، جهز QR للاعب التالي
+
+            // ❗️إغلاق الاتصال الحالي قبل توليد واحد جديد
+            if (currentPeer) currentPeer.destroy();
+            generateNewPeer();
           }
         } catch (e) {
           console.error("❌ فشل تحليل البيانات:", e);
@@ -187,7 +190,7 @@
       rolesContainer.appendChild(row);
     });
 
-    // أول كود عند تشغيل الصفحة
+    // أول كود عند التشغيل
     generateNewPeer();
   </script>
 </body>
