@@ -1,92 +1,40 @@
+<!-- narrator.html -->
 <!DOCTYPE html>
 <html lang="ar">
 <head>
   <meta charset="UTF-8">
   <title>الراوي - لعبة لوڨارو</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://unpkg.com/simple-peer@9.11.1/simplepeer.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
   <style>
-    body {
-      direction: rtl;
-      font-family: 'Cairo', sans-serif;
-      background-color: #fefefe;
-      padding: 20px;
-      text-align: center;
-    }
-    h2, h3 {
-      color: #2c3e50;
-      margin-bottom: 20px;
-    }
-    label, input, button {
-      font-size: 18px;
-      margin-top: 15px;
-    }
-    input[type="number"] {
-      padding: 10px;
-      border-radius: 10px;
-      width: 80px;
-      text-align: center;
-      margin-bottom: 10px;
-    }
-    button {
-      padding: 10px 25px;
-      margin-top: 20px;
-      border: none;
-      background-color: #27ae60;
-      color: white;
-      border-radius: 10px;
-      cursor: pointer;
-      font-size: 18px;
-    }
-    .role-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin: 10px auto;
-      max-width: 400px;
-      padding: 10px;
-      border-bottom: 1px solid #ccc;
-    }
-    .toggle-btn {
-      background-color: #e74c3c;
-      color: white;
-      padding: 8px 15px;
-      border-radius: 8px;
-      border: none;
-      cursor: pointer;
-    }
-    .toggle-btn.active {
-      background-color: #27ae60;
-    }
-    canvas {
-      margin-top: 20px;
-    }
+    body { direction: rtl; font-family: 'Cairo', sans-serif; text-align: center; background: #fefefe; padding: 20px; }
+    input[type="number"], button { font-size: 18px; padding: 10px; margin-top: 10px; border-radius: 10px; }
+    .toggle-btn { background: #e74c3c; color: white; border: none; padding: 8px 15px; border-radius: 8px; }
+    .toggle-btn.active { background: #27ae60; }
+    .role-row { display: flex; justify-content: space-between; max-width: 400px; margin: 10px auto; border-bottom: 1px solid #ccc; padding: 10px; }
+    canvas { margin-top: 20px; }
   </style>
 </head>
 <body>
   <h2>أنت الراوي</h2>
   <p>عدد اللاعبين المسجلين: <strong id="playerCount">0</strong></p>
 
-  <label for="wolves">عدد الذئاب:</label><br>
-  <input type="number" id="wolves" min="0" value="2"><br>
-
-  <label for="villagers">عدد القرويين:</label><br>
-  <input type="number" id="villagers" min="0" value="4"><br>
+  <label>عدد الذئاب:</label><br><input type="number" id="wolves" value="2"><br>
+  <label>عدد القرويين:</label><br><input type="number" id="villagers" value="4"><br>
 
   <h3>الأدوار الفردية</h3>
   <div id="roles"></div>
   <button onclick="startGame()">ابدأ اللعبة</button>
 
   <h3>امسح هذا الكود بكاميرا هاتفك للاتصال</h3>
-  <canvas id="qrcode"></canvas>
-  <br>
+  <canvas id="qrcode"></canvas><br>
   <button onclick="generateNewPeer()">🔄 توليد كود جديد</button>
 
   <ul id="playerList"></ul>
 
-  <script src="https://unpkg.com/simple-peer@9.11.1/simplepeer.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
   <script>
-    const players = []; // { name, peer }
+    const players = [];
     let currentPeer;
 
     function generateNewPeer() {
@@ -111,15 +59,18 @@
             players.push({ name: msg.name, peer: currentPeer });
             updatePlayerList();
             console.log("✅ سجل اللاعب:", msg.name);
-
-            // ❗️إغلاق الاتصال الحالي قبل توليد واحد جديد
-            if (currentPeer) currentPeer.destroy();
-            generateNewPeer();
+            // نؤخر التدمير لإنهاء الإرسال
+            setTimeout(() => {
+              if (currentPeer) currentPeer.destroy();
+              generateNewPeer();
+            }, 500);
           }
         } catch (e) {
           console.error("❌ فشل تحليل البيانات:", e);
         }
       });
+
+      currentPeer.on('error', err => console.error("🚨 خطأ في الراوي:", err));
     }
 
     function updatePlayerList() {
@@ -136,7 +87,6 @@
     function startGame() {
       const wolves = parseInt(document.getElementById("wolves").value);
       const villagers = parseInt(document.getElementById("villagers").value);
-
       const activeRoles = [];
       document.querySelectorAll(".toggle-btn.active").forEach(btn => {
         activeRoles.push(btn.parentElement.firstChild.textContent);
@@ -152,8 +102,7 @@
         ...Array(wolves).fill("ذئب"),
         ...Array(villagers).fill("قروي"),
         ...activeRoles
-      ];
-      rolesToAssign.sort(() => Math.random() - 0.5);
+      ].sort(() => Math.random() - 0.5);
 
       players.forEach((p, i) => {
         const role = rolesToAssign[i] || "قروي";
@@ -173,24 +122,20 @@
     rolesData.forEach(role => {
       const row = document.createElement("div");
       row.className = "role-row";
-
       const name = document.createElement("span");
       name.textContent = role;
-
       const btn = document.createElement("button");
       btn.className = "toggle-btn";
       btn.textContent = "غير مفعل";
-      btn.onclick = function () {
+      btn.onclick = () => {
         btn.classList.toggle("active");
         btn.textContent = btn.classList.contains("active") ? "مفعل" : "غير مفعل";
       };
-
       row.appendChild(name);
       row.appendChild(btn);
       rolesContainer.appendChild(row);
     });
 
-    // أول كود عند التشغيل
     generateNewPeer();
   </script>
 </body>
