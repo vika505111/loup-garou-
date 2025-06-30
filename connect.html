@@ -1,65 +1,0 @@
-<!DOCTYPE html>
-<html lang="ar">
-<head>
-  <meta charset="UTF-8" />
-  <title>الاتصال بين اللاعب والراوي</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script src="https://unpkg.com/simple-peer@9.11.1/simplepeer.min.js"></script>
-</head>
-<body style="font-family: Cairo, sans-serif; text-align: center; padding: 40px;">
-  <h2>📡 جاري إنشاء الاتصال...</h2>
-  <p id="status">الرجاء الانتظار...</p>
-
-  <script>
-    const urlParams = new URLSearchParams(window.location.search);
-    const isNarrator = urlParams.get("type") === "narrator";
-    const signalParam = urlParams.get("signal");
-    const playerName = urlParams.get("player") || "";
-
-    if (!playerName && !isNarrator) {
-      document.getElementById("status").textContent = "❌ الاسم غير موجود. تأكد من المسح بعد إدخال اسمك.";
-      throw new Error("Missing player name");
-    }
-
-    const peer = new SimplePeer({ initiator: isNarrator, trickle: false });
-
-    if (!isNarrator && signalParam) {
-      try {
-        const signal = JSON.parse(decodeURIComponent(signalParam));
-        peer.signal(signal);
-      } catch (e) {
-        document.getElementById("status").textContent = "❌ فشل في قراءة بيانات QR.";
-        throw e;
-      }
-    }
-
-    peer.on('signal', data => {
-      if (isNarrator) {
-        document.getElementById("status").textContent = "📱 انتظر اتصال اللاعب...";
-      }
-    });
-
-    peer.on('connect', () => {
-      document.getElementById("status").textContent = "✅ تم الاتصال بنجاح!";
-      if (!isNarrator && playerName) {
-        peer.send(JSON.stringify({ type: "register", name: playerName }));
-      } else if (isNarrator) {
-        window.location.href = "host.html#ready"; // <== ✅ اسم الصفحة المعدل هنا
-      }
-    });
-
-    peer.on('data', data => {
-      const msg = JSON.parse(data.toString());
-      if (msg.type === "role") {
-        localStorage.setItem("myRole", msg.role);
-        window.location.href = "player.html#myrole";
-      }
-    });
-
-    peer.on('error', err => {
-      document.getElementById("status").textContent = "❌ حدث خطأ في الاتصال.";
-      console.error(err);
-    });
-  </script>
-</body>
-</html>
