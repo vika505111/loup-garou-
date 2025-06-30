@@ -4,8 +4,84 @@
   <meta charset="UTF-8" />
   <title>الراوي - لعبة لوڨارو</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script src="https://unpkg.com/simple-peer@9.11.1/simplepeer.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getDatabase, ref, set, onValue, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+    // إعداد Firebase (ضع بيانات مشروعك هنا)
+    const firebaseConfig = {
+      apiKey: "XXX",
+      authDomain: "XXX.firebaseapp.com",
+      databaseURL: "https://XXX.firebaseio.com",
+      projectId: "XXX",
+      storageBucket: "XXX.appspot.com",
+      messagingSenderId: "XXX",
+      appId: "XXX"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // كود الغرفة من localStorage أو توليد جديد
+    let roomCode = localStorage.getItem("roomCode");
+    if (!roomCode) {
+      roomCode = Math.floor(100 + Math.random() * 900).toString();
+      localStorage.setItem("roomCode", roomCode);
+    }
+    document.getElementById("roomCode").textContent = roomCode;
+
+    const playersRef = ref(db, `rooms/${roomCode}/players`);
+
+    // تحديث قائمة اللاعبين عند الانضمام
+    onValue(playersRef, snapshot => {
+      const data = snapshot.val() || {};
+      const ul = document.getElementById("playerList");
+      ul.innerHTML = "";
+      const names = Object.keys(data);
+      document.getElementById("playerCount").textContent = names.length;
+      names.forEach(name => {
+        const li = document.createElement("li");
+        li.textContent = name;
+        ul.appendChild(li);
+      });
+    });
+
+    // بدء اللعبة وتوزيع الأدوار
+    window.startGame = function () {
+      const wolves = +document.getElementById("wolves").value;
+      const villagers = +document.getElementById("villagers").value;
+      const activeRoles = [];
+
+      document.querySelectorAll(".toggle-btn.active").forEach(btn => {
+        activeRoles.push(btn.parentElement.firstChild.textContent);
+      });
+
+      const totalRoles = wolves + villagers + activeRoles.length;
+
+      onValue(playersRef, snapshot => {
+        const players = Object.keys(snapshot.val() || {});
+        if (totalRoles > players.length) {
+          alert("⚠️ عدد الأدوار أكبر من عدد اللاعبين!");
+          return;
+        }
+
+        const roles = [
+          ...Array(wolves).fill("ذئب"),
+          ...Array(villagers).fill("قروي"),
+          ...activeRoles
+        ];
+        roles.sort(() => Math.random() - 0.5); // خلط الأدوار
+
+        const updates = {};
+        players.forEach((name, i) => {
+          updates[`rooms/${roomCode}/players/${name}/role`] = roles[i] || "قروي";
+        });
+
+        update(ref(db), updates);
+        alert("🎭 تم توزيع الأدوار بنجاح!");
+      }, { onlyOnce: true });
+    };
+  </script>
+
   <style>
     body { direction: rtl; font-family: 'Cairo', sans-serif; text-align: center; padding: 20px; background: #fefefe; }
     input, button { font-size: 18px; margin: 10px; padding: 10px; border-radius: 10px; }
@@ -17,6 +93,9 @@
 <body>
 
   <h2>أنت الراوي</h2>
+  <h3>كود الغرفة: <span id="roomCode" style="font-size: 32px; color: #2980b9;"></span></h3>
+  <p>أعطِ هذا الكود للاعبين ليدخلوه</p>
+
   <p>عدد اللاعبين المسجلين: <strong id="playerCount">0</strong></p>
 
   <label>عدد الذئاب: <input type="number" id="wolves" min="0" value="2" /></label><br />
@@ -26,101 +105,10 @@
   <div id="roles"></div>
   <button onclick="startGame()">🎮 ابدأ اللعبة</button>
 
-  <h3>امسح هذا الكود بكاميرا هاتفك</h3>
-  <canvas id="qrcode"></canvas><br />
-  <button onclick="generateNewPeer()">🔄 توليد كود اتصال</button>
-
+  <h3>اللاعبون المنضمون:</h3>
   <ul id="playerList"></ul>
 
   <script>
-    const players = []; // { name, peer }
-    let currentPeer;
-
-    function generateNewPeer() {
-      currentPeer = new SimplePeer({ initiator: true, trickle: false });
-
-      currentPeer.on('signal', data => {
-        const qr = new QRious({
-          element: document.getElementById('qrcode'),
-          value: `${location.origin}/connect.html?type=player&signal=${encodeURIComponent(JSON.stringify(data))}`,
-          size: 280
-        });
-      });
-
-      currentPeer.on('connect', () => {
-        console.log("✅ اتصال جديد");
-      });
-
-      currentPeer.on('data', raw => {
-        try {
-          const msg = JSON.parse(raw.toString());
-          if (msg.type === 'register' && msg.name) {
-            players.push({ name: msg.name, peer: currentPeer });
-            updatePlayerList();
-            console.log("🎮 تم تسجيل لاعب:", msg.name);
-
-            // حفظ الأسماء في localStorage للوحة التحكم
-            const saved = players.map(p => p.name);
-            localStorage.setItem("players", JSON.stringify(saved));
-
-            // توليد كود جديد للّاعب التالي
-            setTimeout(() => {
-              if (currentPeer) currentPeer.destroy();
-              generateNewPeer();
-            }, 1000);
-          }
-        } catch (e) {
-          console.error("❌ خطأ في بيانات اللاعب:", e);
-        }
-      });
-
-      currentPeer.on('error', err => {
-        console.error("📡 خطأ في الاتصال:", err);
-      });
-    }
-
-    function updatePlayerList() {
-      document.getElementById("playerCount").textContent = players.length;
-      const ul = document.getElementById("playerList");
-      ul.innerHTML = '';
-      players.forEach(p => {
-        const li = document.createElement('li');
-        li.textContent = p.name;
-        ul.appendChild(li);
-      });
-    }
-
-    function startGame() {
-      const wolves = +document.getElementById("wolves").value;
-      const villagers = +document.getElementById("villagers").value;
-      const activeRoles = [];
-
-      document.querySelectorAll(".toggle-btn.active").forEach(btn => {
-        activeRoles.push(btn.parentElement.firstChild.textContent);
-      });
-
-      const total = wolves + villagers + activeRoles.length;
-      if (total > players.length) {
-        alert("⚠️ عدد الأدوار أكبر من عدد اللاعبين!");
-        return;
-      }
-
-      const rolesToAssign = [
-        ...Array(wolves).fill("ذئب"),
-        ...Array(villagers).fill("قروي"),
-        ...activeRoles
-      ];
-
-      rolesToAssign.sort(() => Math.random() - 0.5); // خلط الأدوار
-
-      players.forEach((p, i) => {
-        const role = rolesToAssign[i] || "قروي";
-        p.peer.send(JSON.stringify({ type: "role", role }));
-      });
-
-      alert("🎭 تم توزيع الأدوار بنجاح!");
-    }
-
     // إنشاء واجهة الأدوار الفردية
     const rolesData = ["المستذئب", "الساحرة", "المنقذ", "الذئب الصغير", "الصياد", "الطفلة الصغيرة", "الغراب", "البومة", "رجل الحرائق", "المستبصرة", "الغبي"];
     const rolesContainer = document.getElementById("roles");
@@ -144,9 +132,6 @@
       row.appendChild(btn);
       rolesContainer.appendChild(row);
     });
-
-    // أول اتصال
-    generateNewPeer();
   </script>
 
 </body>
