@@ -4,100 +4,81 @@
   <meta charset="UTF-8" />
   <title>اللاعب - لعبة لوڨارو</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script src="https://unpkg.com/html5-qrcode"></script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getDatabase, ref, set, onValue, get, child } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "XXX",
+      authDomain: "XXX.firebaseapp.com",
+      databaseURL: "https://XXX.firebaseio.com",
+      projectId: "XXX",
+      storageBucket: "XXX.appspot.com",
+      messagingSenderId: "XXX",
+      appId: "XXX"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    window.joinRoom = async function () {
+      const name = document.getElementById("playerName").value.trim();
+      const roomCode = document.getElementById("roomCode").value.trim();
+      const status = document.getElementById("status");
+      const roleBox = document.getElementById("role");
+
+      if (!name || !roomCode) {
+        alert("⚠️ أدخل اسمك وكود الغرفة");
+        return;
+      }
+
+      const roomRef = ref(db, `rooms/${roomCode}`);
+      const snapshot = await get(child(ref(db), `rooms/${roomCode}/players/${name}`));
+      if (snapshot.exists()) {
+        alert("⚠️ الاسم مستخدم في هذه الغرفة، اختر اسمًا مختلفًا");
+        return;
+      }
+
+      // تحقق إذا كانت الغرفة موجودة
+      const roomExists = await get(roomRef);
+      if (!roomExists.exists()) {
+        alert("❌ الغرفة غير موجودة. تأكد من الكود.");
+        return;
+      }
+
+      const playerRef = ref(db, `rooms/${roomCode}/players/${name}`);
+      await set(playerRef, { joinedAt: Date.now() });
+
+      // حفظ الاسم والكود محليًا
+      localStorage.setItem("myName", name);
+      localStorage.setItem("myRoom", roomCode);
+
+      status.textContent = "✅ تم الانضمام. انتظر بدء اللعبة...";
+      roleBox.textContent = "";
+
+      onValue(playerRef, snapshot => {
+        const data = snapshot.val();
+        if (data && data.role) {
+          status.textContent = "";
+          roleBox.textContent = "🎭 دورك هو: " + data.role;
+        }
+      });
+    };
+  </script>
   <style>
-    body {
-      direction: rtl;
-      font-family: 'Cairo', sans-serif;
-      text-align: center;
-      padding: 40px;
-      background: #f5f5f5;
-    }
-
-    input, button {
-      padding: 12px;
-      font-size: 18px;
-      border-radius: 10px;
-      width: 90%;
-      max-width: 300px;
-      margin-top: 10px;
-    }
-
-    button {
-      background-color: #27ae60;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-
-    #role {
-      margin-top: 30px;
-      font-size: 22px;
-      color: #8e44ad;
-    }
-
-    #waiting {
-      margin-top: 20px;
-      color: #7f8c8d;
-      font-size: 18px;
-    }
-
-    #reader {
-      width: 300px;
-      margin: 20px auto;
-      display: none;
-    }
+    body { direction: rtl; font-family: 'Cairo', sans-serif; text-align: center; padding: 40px; background: #f5f5f5; }
+    input, button { padding: 12px; font-size: 18px; border-radius: 10px; width: 90%; max-width: 300px; margin-top: 10px; }
+    button { background-color: #27ae60; color: white; border: none; cursor: pointer; }
+    #role { margin-top: 30px; font-size: 22px; color: #8e44ad; }
+    #status { margin-top: 20px; color: #7f8c8d; font-size: 18px; }
   </style>
 </head>
 <body>
-
-  <h2>أدخل اسمك للمشاركة</h2>
+  <h2>أدخل اسمك وكود الغرفة</h2>
   <input type="text" id="playerName" placeholder="مثال: فاطمة" />
+  <input type="text" id="roomCode" placeholder="كود الغرفة: مثال 728" />
   <br />
-  <button onclick="startScan()">📷 امسح كود الراوي</button>
-
-  <div id="reader"></div>
-  <div id="waiting"></div>
+  <button onclick="joinRoom()">🚪 انضم</button>
+  <div id="status"></div>
   <div id="role"></div>
-
-  <script>
-    function startScan() {
-      const name = document.getElementById("playerName").value.trim();
-      if (!name) return alert("⚠️ أدخل اسمك أولا!");
-
-      localStorage.setItem("playerName", name);
-
-      const reader = document.getElementById("reader");
-      reader.style.display = "block";
-
-      const qr = new Html5Qrcode("reader");
-      qr.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: 250 },
-        (decodedText) => {
-          qr.stop().then(() => {
-            const encodedName = encodeURIComponent(name);
-            const target = `${decodedText}&player=${encodedName}`;
-            window.location.href = target;
-          });
-        },
-        (err) => {}
-      ).catch(err => {
-        alert("❌ لا يمكن فتح الكاميرا");
-      });
-    }
-
-    // بعد العودة من connect.html
-    if (location.hash === "#myrole") {
-      const role = localStorage.getItem("myRole");
-      if (role) {
-        document.getElementById("waiting").style.display = "none";
-        document.getElementById("role").textContent = "🎭 دورك هو: " + role;
-      } else {
-        document.getElementById("waiting").textContent = "❌ لم يتم العثور على دورك.";
-      }
-    }
-  </script>
-
 </body>
 </html>
