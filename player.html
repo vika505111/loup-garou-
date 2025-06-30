@@ -23,8 +23,6 @@
     window.joinRoom = async function () {
       const name = document.getElementById("playerName").value.trim();
       const roomCode = document.getElementById("roomCode").value.trim();
-      const status = document.getElementById("status");
-      const roleBox = document.getElementById("role");
 
       if (!name || !roomCode) {
         alert("⚠️ أدخل اسمك وكود الغرفة");
@@ -38,7 +36,6 @@
         return;
       }
 
-      // تحقق إذا كانت الغرفة موجودة
       const roomExists = await get(roomRef);
       if (!roomExists.exists()) {
         alert("❌ الغرفة غير موجودة. تأكد من الكود.");
@@ -48,20 +45,10 @@
       const playerRef = ref(db, `rooms/${roomCode}/players/${name}`);
       await set(playerRef, { joinedAt: Date.now() });
 
-      // حفظ الاسم والكود محليًا
+      // ✅ حفظ الاسم والكود والانتقال إلى صفحة الانتظار
       localStorage.setItem("myName", name);
       localStorage.setItem("myRoom", roomCode);
-
-      status.textContent = "✅ تم الانضمام. انتظر بدء اللعبة...";
-      roleBox.textContent = "";
-
-      onValue(playerRef, snapshot => {
-        const data = snapshot.val();
-        if (data && data.role) {
-          status.textContent = "";
-          roleBox.textContent = "🎭 دورك هو: " + data.role;
-        }
-      });
+      window.location.href = "connect.html";
     };
   </script>
   <style>
@@ -78,7 +65,5 @@
   <input type="text" id="roomCode" placeholder="كود الغرفة: مثال 728" />
   <br />
   <button onclick="joinRoom()">🚪 انضم</button>
-  <div id="status"></div>
-  <div id="role"></div>
 </body>
 </html>
