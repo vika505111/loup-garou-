@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <title>تحكم الراوي - لوڨارو</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <style>
     body {
       direction: rtl;
@@ -63,29 +65,56 @@
   <div id="playersList"></div>
 
   <script>
-    // جلب اللاعبين من التخزين المحلي
-    const players = JSON.parse(localStorage.getItem("players")) || [];
+    const firebaseConfig = {
+      apiKey: "XXXX",
+      authDomain: "XXXX.firebaseapp.com",
+      databaseURL: "https://XXXX.firebaseio.com",
+      projectId: "XXXX",
+      storageBucket: "XXXX.appspot.com",
+      messagingSenderId: "XXXX",
+      appId: "XXXX"
+    };
 
-    // عرض العدد
-    document.getElementById("count").textContent = `عدد اللاعبين: ${players.length}`;
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
+    let roomCode = localStorage.getItem("myRoom");
+    if (!roomCode) {
+      roomCode = prompt("أدخل كود الغرفة");
+      localStorage.setItem("myRoom", roomCode);
+    }
+
+    const playersRef = db.ref("rooms/" + roomCode + "/players");
     const playersList = document.getElementById("playersList");
+    const count = document.getElementById("count");
 
-    players.forEach((name, index) => {
-      const div = document.createElement("div");
-      div.className = "player";
-      div.innerHTML = `
-        <span>${name}</span>
-        <button class="kill" onclick="killPlayer(this)">قتل</button>
-      `;
-      playersList.appendChild(div);
+    playersRef.on("value", (snapshot) => {
+      const data = snapshot.val();
+      playersList.innerHTML = "";
+
+      if (!data) {
+        count.textContent = "لا يوجد لاعبون";
+        return;
+      }
+
+      const entries = Object.entries(data);
+      count.textContent = `عدد اللاعبين: ${entries.length}`;
+
+      entries.forEach(([key, player]) => {
+        const div = document.createElement("div");
+        div.className = "player" + (player.dead ? " dead" : "");
+        div.innerHTML = `
+          <span>${key}</span>
+          <button class="kill" ${player.dead ? "disabled" : ""} onclick="killPlayer('${key}')">
+            ${player.dead ? "ميت" : "قتل"}
+          </button>
+        `;
+        playersList.appendChild(div);
+      });
     });
 
-    function killPlayer(button) {
-      const playerDiv = button.parentElement;
-      playerDiv.classList.add("dead");
-      button.textContent = "ميت";
-      button.disabled = true;
+    function killPlayer(playerKey) {
+      db.ref(`rooms/${roomCode}/players/${playerKey}/dead`).set(true);
     }
   </script>
 
