@@ -2,137 +2,275 @@
 <html lang="ar">
 <head>
   <meta charset="UTF-8" />
-  <title>الراوي - لعبة لوڨارو</title>
+  <title>Loup-Garou</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getDatabase, ref, set, onValue, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-
-    // إعداد Firebase (ضع بيانات مشروعك هنا)
-    const firebaseConfig = {
-      apiKey: "XXX",
-      authDomain: "XXX.firebaseapp.com",
-      databaseURL: "https://XXX.firebaseio.com",
-      projectId: "XXX",
-      storageBucket: "XXX.appspot.com",
-      messagingSenderId: "XXX",
-      appId: "XXX"
-    };
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-
-    // كود الغرفة من localStorage أو توليد جديد
-    let roomCode = localStorage.getItem("roomCode");
-    if (!roomCode) {
-      roomCode = Math.floor(100 + Math.random() * 900).toString();
-      localStorage.setItem("roomCode", roomCode);
-    }
-    document.getElementById("roomCode").textContent = roomCode;
-
-    const playersRef = ref(db, `rooms/${roomCode}/players`);
-
-    // تحديث قائمة اللاعبين عند الانضمام
-    onValue(playersRef, snapshot => {
-      const data = snapshot.val() || {};
-      const ul = document.getElementById("playerList");
-      ul.innerHTML = "";
-      const names = Object.keys(data);
-      document.getElementById("playerCount").textContent = names.length;
-      names.forEach(name => {
-        const li = document.createElement("li");
-        li.textContent = name;
-        ul.appendChild(li);
-      });
-    });
-
-    // بدء اللعبة وتوزيع الأدوار
-    window.startGame = function () {
-      const wolves = +document.getElementById("wolves").value;
-      const villagers = +document.getElementById("villagers").value;
-      const activeRoles = [];
-
-      document.querySelectorAll(".toggle-btn.active").forEach(btn => {
-        activeRoles.push(btn.parentElement.firstChild.textContent);
-      });
-
-      const totalRoles = wolves + villagers + activeRoles.length;
-
-      onValue(playersRef, snapshot => {
-        const players = Object.keys(snapshot.val() || {});
-        if (totalRoles > players.length) {
-          alert("⚠️ عدد الأدوار أكبر من عدد اللاعبين!");
-          return;
-        }
-
-        const roles = [
-          ...Array(wolves).fill("ذئب"),
-          ...Array(villagers).fill("قروي"),
-          ...activeRoles
-        ];
-        roles.sort(() => Math.random() - 0.5); // خلط الأدوار
-
-        const updates = {};
-        players.forEach((name, i) => {
-          updates[`rooms/${roomCode}/players/${name}/role`] = roles[i] || "قروي";
-        });
-
-        update(ref(db), updates);
-        alert("🎭 تم توزيع الأدوار بنجاح!");
-      }, { onlyOnce: true });
-    };
-  </script>
-
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@700&display=swap" rel="stylesheet" />
   <style>
-    body { direction: rtl; font-family: 'Cairo', sans-serif; text-align: center; padding: 20px; background: #fefefe; }
-    input, button { font-size: 18px; margin: 10px; padding: 10px; border-radius: 10px; }
-    .role-row { display: flex; justify-content: space-between; max-width: 400px; margin: 10px auto; border-bottom: 1px solid #ccc; }
-    .toggle-btn { background-color: #e74c3c; color: white; padding: 8px 15px; border: none; border-radius: 8px; cursor: pointer; }
-    .toggle-btn.active { background-color: #27ae60; }
+    body {
+      font-family: 'Cairo', sans-serif;
+      direction: rtl;
+      padding: 30px;
+      margin: 0;
+      background-color: #000;
+      color: white;
+      text-align: center;
+    }
+
+    .container {
+      background: #111;
+      border-radius: 16px;
+      padding: 30px 20px;
+      max-width: 600px;
+      margin: auto;
+      box-shadow: 0 0 25px rgba(255, 0, 0, 0.15);
+      border: 2px solid crimson;
+    }
+
+    h2 {
+      font-size: 28px;
+      color: crimson;
+      text-shadow: 0 0 10px red, 0 0 20px darkred;
+      letter-spacing: 2px;
+      margin-bottom: 25px;
+    }
+
+    .section {
+      margin-top: 30px;
+      text-align: right;
+    }
+
+    label {
+      display: block;
+      margin: 10px 0 6px;
+      color: #ddd;
+    }
+
+    input[type="number"] {
+      width: 80px;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid #555;
+      background-color: #1a1a1a;
+      color: white;
+      font-size: 16px;
+    }
+
+    .roles-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .role-toggle {
+      background: #222;
+      padding: 6px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      color: white;
+      border: 1px solid #444;
+      transition: 0.2s;
+    }
+
+    .role-toggle:hover {
+      background: #333;
+    }
+
+    .role-toggle.active {
+      background-color: crimson;
+      color: white;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    ul li {
+      margin: 5px 0;
+      color: #ccc;
+    }
+
+    button {
+      background-color: #2c2c2c;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 10px;
+      border: none;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 20px;
+      font-weight: bold;
+      box-shadow: 0 0 10px rgba(255, 0, 0, 0.15);
+      transition: 0.2s ease;
+    }
+
+    button:hover {
+      background-color: #3a3a3a;
+      box-shadow: 0 0 15px crimson;
+      transform: scale(1.02);
+    }
+
+    #exit-btn {
+      float: left;
+      background-color: #a10d0d;
+    }
+
+    #code-display {
+      font-size: 22px;
+      color: white;
+      margin-top: 10px;
+    }
   </style>
 </head>
 <body>
+  <div class="container">
+    <h2>Loup-Garou</h2>
+    <button id="exit-btn">خروج</button>
+    <div>رمز الغرفة:</div>
+    <div id="code-display">...</div>
 
-  <h2>أنت الراوي</h2>
-  <h3>كود الغرفة: <span id="roomCode" style="font-size: 32px; color: #2980b9;"></span></h3>
-  <p>أعطِ هذا الكود للاعبين ليدخلوه</p>
+    <div class="section">
+      <label>عدد الذئاب:</label>
+      <input type="number" id="wolves-count" min="0" max="10" value="1" />
+      <label>عدد القرويين:</label>
+      <input type="number" id="villagers-count" min="0" max="20" value="3" />
+    </div>
 
-  <p>عدد اللاعبين المسجلين: <strong id="playerCount">0</strong></p>
+    <div class="section">
+      <label>الأدوار الفردية:</label>
+      <div class="roles-list" id="individual-roles"></div>
+    </div>
 
-  <label>عدد الذئاب: <input type="number" id="wolves" min="0" value="2" /></label><br />
-  <label>عدد القرويين: <input type="number" id="villagers" min="0" value="4" /></label>
+    <div class="section">
+      <label>اللاعبون في الغرفة:</label>
+      <ul id="players-list"></ul>
+    </div>
 
-  <h3>الأدوار الفردية</h3>
-  <div id="roles"></div>
-  <button onclick="startGame()">🎮 ابدأ اللعبة</button>
+    <button id="start-game">بدء اللعبة</button>
+  </div>
 
-  <h3>اللاعبون المنضمون:</h3>
-  <ul id="playerList"></ul>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+    import {
+      getDatabase, ref, set, onValue, push, get, update
+    } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
 
-  <script>
-    // إنشاء واجهة الأدوار الفردية
-    const rolesData = ["المستذئب", "الساحرة", "المنقذ", "الذئب الصغير", "الصياد", "الطفلة الصغيرة", "الغراب", "البومة", "رجل الحرائق", "المستبصرة", "الغبي"];
-    const rolesContainer = document.getElementById("roles");
+    const firebaseConfig = {
+      apiKey: "AIzaSyBC7slGCHoJ2AAxfuaLPMawrd6woysaLw4",
+      authDomain: "loup-garou-v1001.firebaseapp.com",
+      databaseURL: "https://loup-garou-v1001-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "loup-garou-v1001",
+      storageBucket: "loup-garou-v1001.appspot.com",
+      messagingSenderId: "889495954871",
+      appId: "1:889495954871:web:b1a78c457923fd7772b432"
+    };
 
-    rolesData.forEach(role => {
-      const row = document.createElement("div");
-      row.className = "role-row";
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
 
-      const name = document.createElement("span");
-      name.textContent = role;
+    let roomCode = localStorage.getItem("roomCode");
+if (roomCode) {
+  const roomSnap = await get(ref(db, `rooms/${roomCode}`));
+  if (!roomSnap.exists()) {
+    localStorage.removeItem("roomCode");
+    location.reload(); // لإعادة تحميل الصفحة وإنشاء غرفة جديدة
+  }
+}
+    if (!roomCode) {
+      roomCode = Math.floor(100 + Math.random() * 900).toString();
+      localStorage.setItem("roomCode", roomCode);
+      await set(ref(db, `rooms/${roomCode}`), { started: false });
+    }
 
-      const btn = document.createElement("button");
-      btn.className = "toggle-btn";
-      btn.textContent = "غير مفعل";
-      btn.onclick = () => {
-        btn.classList.toggle("active");
-        btn.textContent = btn.classList.contains("active") ? "مفعل" : "غير مفعل";
+    document.getElementById("code-display").textContent = roomCode;
+
+    const individualRoles = [
+      "الذئب الصغير", "المستذئب", "الساحره", "المنقذ", "الصياد",
+      "رجل حرائق", "باربي", "البومة", "الغراب", "المستبصرة", "الغبي"
+    ];
+
+    const activeRoles = [];
+    const rolesContainer = document.getElementById("individual-roles");
+
+    individualRoles.forEach(role => {
+      const span = document.createElement("span");
+      span.className = "role-toggle";
+      span.textContent = role;
+      span.onclick = () => {
+        span.classList.toggle("active");
+        if (activeRoles.includes(role)) {
+          activeRoles.splice(activeRoles.indexOf(role), 1);
+        } else {
+          activeRoles.push(role);
+        }
       };
+      rolesContainer.appendChild(span);
+    });
 
-      row.appendChild(name);
-      row.appendChild(btn);
-      rolesContainer.appendChild(row);
+    const playersList = document.getElementById("players-list");
+
+    onValue(ref(db, `rooms/${roomCode}/players`), (snapshot) => {
+      playersList.innerHTML = "";
+      snapshot.forEach(child => {
+        const li = document.createElement("li");
+        li.textContent = child.val().name;
+        playersList.appendChild(li);
+      });
+    });
+
+    document.getElementById("start-game").addEventListener("click", async () => {
+      const wolvesCount = parseInt(document.getElementById("wolves-count").value);
+      const villagersCount = parseInt(document.getElementById("villagers-count").value);
+      const totalRoles = wolvesCount + villagersCount + activeRoles.length;
+
+      const playersRef = ref(db, `rooms/${roomCode}/players`);
+      const playersSnap = await get(playersRef);
+
+      if (!playersSnap.exists()) {
+        alert("لا يوجد لاعبين في الغرفة.");
+        return;
+      }
+
+      const players = [];
+      playersSnap.forEach(child => {
+        players.push({ id: child.key, ...child.val() });
+      });
+
+      if (players.length !== totalRoles) {
+        alert(`عدد الأدوار (${totalRoles}) لا يساوي عدد اللاعبين (${players.length})`);
+        return;
+      }
+
+      const roles = [];
+      for (let i = 0; i < wolvesCount; i++) roles.push("ذئب");
+      for (let i = 0; i < villagersCount; i++) roles.push("قروي");
+      roles.push(...activeRoles);
+
+      for (let i = roles.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [roles[i], roles[j]] = [roles[j], roles[i]];
+      }
+
+      for (let i = 0; i < players.length; i++) {
+        await update(ref(db, `rooms/${roomCode}/players/${players[i].id}`), {
+          role: roles[i]
+        });
+      }
+
+      await update(ref(db, `rooms/${roomCode}`), {
+        started: true
+      });
+
+      window.location.href = "host-control.html";
+    });
+
+    document.getElementById("exit-btn").addEventListener("click", async () => {
+      const roomRef = ref(db, `rooms/${roomCode}`);
+      await update(roomRef, { started: false });
+      localStorage.removeItem("roomCode");
+      window.location.href = "index.html";
     });
   </script>
-
 </body>
 </html>
